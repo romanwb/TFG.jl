@@ -3,11 +3,15 @@ uuid = "428360d4-0b66-4714-8778-cc39d8d995c5"
 authors = ["Juan Roman"]
 version = "1.0.0-DEV"
 
+[deps]
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+
 [compat]
 julia = "1.6.7"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 
 [targets]
-test = ["Test"]
+test = ["Test", "SafeTestsets"]
