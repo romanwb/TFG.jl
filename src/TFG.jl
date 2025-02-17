@@ -1,5 +1,7 @@
 module TFG
 
-# Write your package code here.
+include("file_example.jl")
+
+export my_f
 
 end
