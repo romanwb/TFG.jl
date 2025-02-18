@@ -1,9 +1,10 @@
 module TFG
 
-using ForwardDiff
+include("functions_4_test.jl")
+export my_f
 
-include("file_example.jl")
-
-export my_f, derivative_of_my_f
+using DifferentialEquations, CairoMakie, Distributions
+include("time_integration_w_cte.jl")
+include("time_int_comparison.jl")
 
 end
