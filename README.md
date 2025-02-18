@@ -6,5 +6,3 @@
 [![Coverage](https://codecov.io/gh/romanrusset/TFG.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/romanrusset/TFG.jl)
 [![Coverage](https://coveralls.io/repos/github/romanrusset/TFG.jl/badge.svg?branch=main)](https://coveralls.io/github/romanrusset/TFG.jl?branch=main)
 
-
-This is a repository for a linear function  'my_f' and its derivatives.
