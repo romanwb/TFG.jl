@@ -24,3 +24,5 @@ f = Figure()
 ax = Axis(f[1, 1], xlabel = "Periods", ylabel = "𝑥")
 lines!(ax, ScalePeriod, sol[1,:])
 f
+
+#Just a little test!
