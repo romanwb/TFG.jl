@@ -1,4 +1,6 @@
-ξ, ϵ, f₀ = 1, 0.01, 2 #try f₀=1 for greater concordance
+using DifferentialEquations, CairoMakie
+
+ξ, ϵ, f₀ = 1, 0.01, 1 #try f₀=1 for greater concordance
 F₀ = ϵ * f₀
 ξ̃ = ϵ * ξ
 NPeriods = 500

@@ -1,4 +1,25 @@
+name = "TFG"
+uuid = "428360d4-0b66-4714-8778-cc39d8d995c5"
+authors = ["Juan Roman"]
+version = "1.0.0-DEV"
+
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+ContinuationSuite = "e82900b0-f859-4727-ae26-3525d706451f"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+
+[compat]
+ContinuationSuite = "1.0.0"
+LinearAlgebra = "1.11.0"
+julia = "1.10"
+
+[extras]
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "SafeTestsets"]

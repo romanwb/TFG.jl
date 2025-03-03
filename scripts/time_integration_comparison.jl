@@ -1,3 +1,5 @@
+using DifferentialEquations, CairoMakie
+
 ξ, ϵ, f₀ = 1, 0.01, 1 #try f₀=1 for greater concordance
 F₀ = ϵ * f₀
 ξ̃ = ϵ * ξ
@@ -63,3 +65,6 @@ lines!(ax, deltaOmega_plus, [2*A for A in Avals], label="Rama +")
 lines!(ax, deltaOmega_minus, [2*A for A in Avals], label="Rama -")
 scatter!(Δω_axis, old_max_values)
 f
+
+println(Δω_axis[25])
+println(old_max_values[25])
