@@ -1,4 +1,4 @@
-include("../src/plot_circumference.jl")
+using TFG, ContinuationSuite, GLMakie
 
 function f(x, λ, p)
     x₁, x₂ = x
@@ -16,8 +16,3 @@ x₀, λ₀ = [0.0, 5.0], 12.6
 
 sol = continuation(prob, x₀, λ₀)
 x, λ = sol.x, sol.λ
-
-
-lines(λ, x[1, :])
-lines(λ, x[2, :])
-lines!(x[1, :], x[2, :])
