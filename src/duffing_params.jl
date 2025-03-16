@@ -40,3 +40,29 @@ using Parameters
     dg::Function
 
 end
+
+
+using Parameters
+@with_kw struct DuffingParamsContinuation
+
+    N::Int
+    H::Int
+    
+    ξ::Float64
+    ϵ::Float64
+
+    E::Matrix{Float64}
+    Eᴴ::Matrix{Float64}
+
+    x₀::Vector{Float64}
+
+    @assert length(x₀) == 2H + 1 "x₀ debe tener dimensión 2H+1, pero tiene $(length(x₀))"
+
+    f̂::Vector{Float64}
+
+    @assert length(f̂) == 2H + 1 "f̂ debe tener dimensión 2H+1, pero tiene $(length(f̂))"
+
+    g::Function
+    dg::Function
+
+end

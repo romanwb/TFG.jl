@@ -17,6 +17,20 @@ function duffing(x̂, p::DuffingParams)
     return [F₀; F]
 end
 
+function duffing_continuation(x̂, λ, p::DuffingParamsContinuation)
+    E, Eᴴ, H = p.E, p.Eᴴ, p.H
+    ξ, ϵ, f̂ = p.ξ, p.ϵ, p.f̂
+    g = p.g
+
+    ĝ = Eᴴ * g.(E * x̂)
+
+    A = system_matrix(H, ξ, λ)
+
+    F₀ = x̂[1] + ϵ * ĝ[1] - f̂[1]
+    F = A * x̂[2:end] + ϵ * ĝ[2:end] - f̂[2:end]
+    return [F₀; F]
+end
+
 function jacobian_matrix(x, p::DuffingParams)
     E, Eᴴ, H = p.E, p.Eᴴ, p.H
     ξ, ϵ, f̂ = p.ξ, p.ϵ, p.f̂

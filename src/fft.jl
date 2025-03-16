@@ -22,12 +22,14 @@ function fft_matrices(N, H)
     return E, Eᴴ
 end
 
-function system_matrix(H, ξ, Ω)
-    A = zeros(2H, 2H)
+
+function system_matrix(H::Int, ξ::Real, Ω::Real)
+    # para A mismo tipo que Ω
+    A = zeros(eltype(Ω), 2H, 2H)
 
     for k in 1:H
-        A[(2k - 1):(2k), (2k - 1):(2k)] .= [(1-k^2 * Ω^2) k*Ω*ξ;
-                                            -k*Ω*ξ (1-k^2 * Ω^2)]
+        A[(2k - 1):(2k), (2k - 1):(2k)] .= [(1 - k^2 * Ω^2)  k*Ω*ξ;
+                                            -k*Ω*ξ  (1-k^2 * Ω^2)]
     end
     return A
 end
