@@ -42,7 +42,6 @@ using Parameters
 end
 
 
-using Parameters
 @with_kw struct DuffingParamsContinuation
 
     N::Int
@@ -64,5 +63,20 @@ using Parameters
 
     g::Function
     dg::Function
+
+end
+
+@with_kw struct DuffingParamsTimeIntegration
+
+    ξ::Float64
+    ϵ::Float64
+
+    f̂::Vector{Float64}
+
+    #@assert length(f̂) == 2H + 1 "f̂ debe tener dimensión 2H+1, pero tiene $(length(f̂))"
+
+    i::Int
+    n::Int
+    λ₀::Float64
 
 end
