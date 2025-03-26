@@ -45,6 +45,17 @@ function duffing_time_domain(ẏ, y, p::DuffingParamsTimeIntegration, t)
     ẏ[2] = - ξ*y[2] - y[1] - ϵ*y[1]^3 + float_f₀*cos(Ω*t)
 end
 
+function duffing_time_domain_g(ẏ, y, p::DuffingParamsTimeIntegration, t)
+    ξ, ϵ, f̂ = p.ξ, p.ϵ, p.f̂
+    float_f₀ = only(filter(!iszero, f̂))
+    i, n, λ₀ = p.i, p.n, p.λ₀
+    g = p.g
+    Ω = 1-(1-λ₀)*cos(0.5*π*(2*(i-1)/(n-1)))
+
+    ẏ[1] = y[2] 
+    ẏ[2] = - ξ*y[2] - y[1] - g(y[1], t) + float_f₀*cos(Ω*t)
+end
+
 "
 f(du, u, p, t, a, b, c)
 f_ode = (du, u, p, t) -> f(du, u, p, t, 0.1, 0.2, 0.3)

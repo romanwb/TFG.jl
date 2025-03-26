@@ -78,5 +78,6 @@ end
     i::Int
     n::Int
     λ₀::Float64
+    g::Function
 
 end

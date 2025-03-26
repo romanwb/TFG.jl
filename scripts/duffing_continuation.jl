@@ -45,7 +45,8 @@ amplitudes_abs = [maximum(E * abs.(sol.x[:, i])) for i in 1:length(λ_values)]
 
 
 # Import time integration (axis X, Y)
-Δω_axis, time_integration = time_integration_values(ξ̃, ϵ, n, λ₀, f̂₀, y₀)
+g_time(x, t) = g_friction_time(x, t)
+Δω_axis, time_integration = time_integration_values(ξ̃, ϵ, n, λ₀, f̂₀, y₀, g_time)
 
 #Import asymptotic solution
 deltaOmega_plus, deltaOmega_minus, Avals = asymptotic_curve(ξ, f̂₀)
@@ -63,14 +64,14 @@ function plot_comparison(y, pos)
         lines!(ax, λ_values, y, color = :dodgerblue, label="Continuation Method")
         #lines!(ax, ω_plus, [2*A for A in Avals], color = :black, label="Asymptotic")
         #lines!(ax, ω_minus, [2*A for A in Avals], color = :black)
-        #scatter!(ax, ω_axis, time_integration;
-         #   marker = :circle,
-         #   color = :white,  
-         #   strokecolor = :dodgerblue,      
-         #   strokewidth = 0.5,           
-         #   markersize = 10,
-         #   label = "Time integration"
-       # )
+        scatter!(ax, ω_axis, time_integration;
+            marker = :circle,
+            color = :white,  
+            strokecolor = :dodgerblue,      
+            strokewidth = 0.5,           
+            markersize = 10,
+            label = "Time integration"
+        )
 
         axislegend(ax, position = :lt)
     fig
