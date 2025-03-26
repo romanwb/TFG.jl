@@ -12,8 +12,10 @@ function duffing(x̂, p::DuffingParams)
 
     A = system_matrix(H, ξ, Ω)
 
-    F₀ = x̂[1] + ϵ * ĝ[1] - f̂[1]
-    F = A * x̂[2:end] + ϵ * ĝ[2:end] - f̂[2:end]
+    #F₀ = x̂[1] + ϵ * ĝ[1] - f̂[1]
+    F₀ = x̂[1] + ĝ[1] - f̂[1]
+    #F = A * x̂[2:end] + ϵ * ĝ[2:end] - f̂[2:end]
+    F = A * x̂[2:end] + ĝ[2:end] - f̂[2:end]
     return [F₀; F]
 end
 
@@ -22,12 +24,14 @@ function duffing_continuation(x̂, λ, p::DuffingParamsContinuation)
     ξ, ϵ, f̂ = p.ξ, p.ϵ, p.f̂
     g = p.g
 
-    ĝ = Eᴴ * g.(E * x̂)
-
+    #ĝ = Eᴴ * g.(E * x̂)
+    ĝ = Eᴴ * g(E * x̂)
     A = system_matrix(H, ξ, λ)
 
-    F₀ = x̂[1] + ϵ * ĝ[1] - f̂[1]
-    F = A * x̂[2:end] + ϵ * ĝ[2:end] - f̂[2:end]
+    #F₀ = x̂[1] + ϵ * ĝ[1] - f̂[1]
+    F₀ = x̂[1] + ĝ[1] - f̂[1]
+    #F = A * x̂[2:end] + ϵ * ĝ[2:end] - f̂[2:end]
+    F = A * x̂[2:end] + ĝ[2:end] - f̂[2:end]
     return [F₀; F]
 end
 

@@ -10,6 +10,8 @@ include("duffing_oscillator.jl")
 # include("time_integration_comparison.jl") # (PROVISIONAL) Se eliminara tras separar en dos modulos
 include("duffing_time_int.jl")
 include("duffing_asymptotic.jl")
+include("jacobian.jl")
+include("friction_model.jl")
 
 
 
@@ -19,6 +21,7 @@ export duffing, duffing_continuation, duffing_time_domain, jacobian_matrix
 # export DuffingTimeAsymp
 export time_integration_values
 export asymptotic_curve
-
+export autodiff_jac, finite_diff_jac
+export normal_force, tangencial_force, g_friction
 
 end
