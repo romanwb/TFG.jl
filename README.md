@@ -5,4 +5,3 @@
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/romanrusset/TFG.jl?svg=true)](https://ci.appveyor.com/project/romanrusset/TFG-jl)
 [![Coverage](https://codecov.io/gh/romanrusset/TFG.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/romanrusset/TFG.jl)
 [![Coverage](https://coveralls.io/repos/github/romanrusset/TFG.jl/badge.svg?branch=main)](https://coveralls.io/github/romanrusset/TFG.jl?branch=main)
-

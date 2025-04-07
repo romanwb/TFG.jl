@@ -21,7 +21,8 @@ end
             #Slip
             sg = sign(T)
             wₜ = xₜ - sg * μ * N / kₜ
-            return sg * μ * N, wₜ
+            T = sg * μ * N
+            return T, wₜ
         end
     else
         #Lift-off
@@ -66,8 +67,9 @@ function g_completa(x)
     t = range(0, 2π, length = length(x) + 1)[1:(end-1)]
     N = 1.0 .+ 1.25 .* sin.(t) # N(t) ≠ cte
     #N = 1.0 # N(t) = cte
-    μ = 0.5
+    μ = 0.25
     kₜ = 1.0
+
 
     t_full = zeros(2*length(x)) # Recoge historico completo
     t_force = zeros(length(x))
