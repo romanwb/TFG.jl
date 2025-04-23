@@ -1,22 +1,17 @@
 using LinearAlgebra
 
-function craig_bampton_projection(
-    Mee, Mec, Mce, Mcc,
-    Kee, Kec, Kce, Kcc,
-    fe, fc;
-    n_modes::Int = 5
-)
+function craig_bampton_aplication(Mee, Mec, Mce, Mcc, Kee, Kec, Kce, Kcc, fe, fc; n_modes::Int = 5)
 
-    # 1. Autovalores del sistema full-stuck: (Kee - ω² Mee) φ = 0
+    #(Kee - ω² Mee) φ = 0
     λs, Φ = eigen(Kee, Mee)
     idx = sortperm(λs)
     ω² = λs[idx][1:n_modes]
     Φ = Φ[:, idx[1:n_modes]]
 
-    # 2. Modos estáticos Ψ = -Kee⁻¹ Kec
+    #Ψ = -Kee⁻¹ Kec
     Ψ = -Kee \ Kec
 
-    # 3. Proyecciones de masa, rigidez y fuerzas
+    #Definicion de terminos
     Max = Φ' * Mee * Ψ + Φ' * Mec
     Mxx = Ψ' * Mee * Ψ + Ψ' * Mec + Mce * Ψ + Mcc
     Kxx = Kcc - Ψ' * Kee * Ψ
@@ -24,12 +19,12 @@ function craig_bampton_projection(
     fa = Φ' * fe
     fx = Ψ' * fe + fc
 
-    # 4. Ensamblado de matrices proyectadas
+    #Ensamblado de la matriz
     M = [Max'; Mxx]
     K = [Diagonal(ω²); Kxx]
     f = [fa; fx]
 
-    # 5. Matriz de transformación T_CB
+    #Matriz de transformacion T_cb
     n_c = size(Kcc, 1)
     T_CB = [
         Φ  Ψ;

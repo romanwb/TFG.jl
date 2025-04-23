@@ -1,7 +1,7 @@
 using TFG, ContinuationSuite, GLMakie, DifferentialEquations, ForwardDiff, CairoMakie, LinearAlgebra
 
 #Build T
-function build_Max_block(Max, Kaa, Ω, H, ξ)
+function build_T(Max, Kaa, Ω, H, ξ)
     T = eltype(Ω)
     Nx = size(Max, 2)
     N_total = (2H + 1) * Nx
@@ -58,34 +58,30 @@ function continuation_system(x̂, λ, p::HBMParams)
     dof_per_node = 2H + 1
     dof_total = Nx * dof_per_node
 
-    # 1. Reconstrucción Fourier → tiempo
     X_matrix = reshape(x̂, dof_per_node, Nx)'       # (Nx × dof_per_node)
     X_time = X_matrix * E'                          # (Nx × Nt)
-
-    # 2. Evaluar no linealidad: g(x) = γ x³
     g_time = γ .* X_time.^3
-
-    # 3. Transformar de vuelta a Fourier
     G = vec(g_time * Eᴴ')  # tamaño Nx*(2H+1)
 
-    # 4. Sistema lineal LHS
+    
     T = eltype(x̂)
     LHS = zeros(T, dof_total, dof_total)
-
-
-    # Parte estática (k = 0): solo rigidez
+    #Kxx diagonal
     LHS[1:Nx, 1:Nx] .= p.Kxx
 
-    # Parte k ≥ 1
-    A = system_matrix(H, ξ, λ)                  # 2H × 2H
+
+#         ⎡ 1 - k^2*λ^2       kλξ   ⎤
+#   A_k = ⎢                         ⎥
+#         ⎣     -kλξ     1 - k^2*λ^2⎦
+    A = system_matrix(H, ξ, λ)  # 2H × 2H
     I_H = Matrix{T}(I, 2H, 2H)
+# Generacion de diagonal de matrices
     LHS_k = kron(A, p.Kxx) + kron(I_H, -λ^2 * p.Mxx)
+# NOTA: Recordar que las primeras Nx filas y columnas corresponden al armónico constante k=0
     LHS[Nx+1:end, Nx+1:end] .= LHS_k
 
-    # 5. Añadir parte modal (acoplamiento)
-    LHS .+= build_Max_block(p.Max, p.Kaa, λ, H, ξ)
+    LHS .+= build_T(p.Max, p.Kaa, λ, H, ξ)
 
-    # 6. Residuo total
     return LHS * x̂ + G - p.F
 end
 
@@ -117,8 +113,7 @@ Kxx = [10.0 -10.0 0.0;
        -10.0 20.0 -10.0;
          0.0 -10.0 20.0]
 
-Psi = [1.0 0.0 0.0;
-        0.0 1.0 0.0]
+Psi = [1.0 0.0 0.0 1.0 0.0 0.0]
 
 Phi = [-0.850651 -0.525731;
        -0.525731 0.850651]
@@ -128,27 +123,42 @@ fx = [3.0, 0.0, 0.0]
 Rx = [-1.2, -0.1, -0.1]
 xe0 = zeros(2)
 
+function build_time_domain_force(Nx, Nt)
+    t = range(0, 2π, length=Nt+1)[1:end-1]
+    fbase = sin.(t) .+ sin.(2t) 
 
-function build_forcing_vector(fx, H, Nx)
-    F = zeros(Nx * (2H + 1))
-    for h in 1:H
-        idx = 2h + 1  # posición del seno del armónico h en el primer nodo (asumido)
-        F[idx] = fx[1]  # solo DOF 1 (el primero de los de fricción) recibe fuerza
-    end
-    return F
+    fx = [3.0, 0.0, 0.0]
+    f_time = fx .* fbase'
+
+    return f_time, t
 end
 
-F = build_forcing_vector(fx, H, Nx)
+function time_to_fourier_force(f_time, Eᴴ)
+    # f_time: Nx × Nt
+    Fhat_matrix = f_time * Eᴴ'
+    Fhat_vector = vec(Fhat_matrix)
+    return Fhat_vector
+end
 
+function reorder_force_by_harmonic(Fhat_by_node::Vector, Nx::Int, H::Int)
+    dof_per_node = 2H + 1
+    F_matrix = reshape(Fhat_by_node, Nx, dof_per_node)
+    F_reordered = []
+    for k in 1:dof_per_node
+        push!(F_reordered, F_matrix[:, k]) 
+    end
 
-# Crear parámetros
+    return vcat(F_reordered...)
+end
+
+Nt = 300
+E, Eᴴ = fft_matrices(Nt, H)
+f_time, t = build_time_domain_force(Nx, Nt)
+Fhat_by_node = time_to_fourier_force(f_time, Eᴴ)
+F = reorder_force_by_harmonic(Fhat_by_node, Nx, H)
 p = HBMParams(Kxx, Mxx, Max, Kaa, F, γ, H, Nx, E, Eᴴ, ξ)
 
-# Evaluar en punto inicial
-#residuo = continuation_system(x̂, λ, params)
-
-
-
+E, Eᴴ = fft_matrices(N, H)
 
 ###################################################################
 #####################       PRELOAD        ########################
@@ -169,6 +179,7 @@ function solve_static_preload(Kxx, Rx, γ; tol=1e-10, maxiter=50)
     end
     error("No converge el estado de precarga")
 end
+
 
 function initial_guess_from_preload(Kxx, Rx, γ, H, Nx)
     x_p = solve_static_preload(Kxx, Rx, γ)
@@ -194,19 +205,31 @@ prob = ContinuationProblem(continuation_system, cont_pars, p; autodiff = true)
 sol = continuation(prob, x̂₀, λ₀)
 
 λ_values = sol.λ
+size(sol.λ)
+size(sol.x)
 
-function extract_amplitude_vs_frequency(sol, E, H, dof::Int)
+function extract_amplitude_vs_frequency_by_harmonic_order(sol, E, H, dof::Int, Nx::Int)
     Nh = 2H + 1
+    Nt = size(E, 1)
     Nsteps = length(sol.λ)
 
-    amplitudes = [maximum(abs.(E * sol.x[(dof-1)*Nh+1 : dof*Nh, i])) for i in 1:Nsteps]
-    freqs = sol.λ
+    amplitudes = zeros(Nsteps)
 
+    for i in 1:Nsteps
+        x̂ = sol.x[:, i]
+ 
+        coeffs = [x̂[Nx*(k-1) + dof] for k in 1:Nh]
+        x_t = E * coeffs
+        amplitudes[i] = maximum(abs.(x_t))
+    end
+
+    freqs = sol.λ
     return freqs, amplitudes
 end
 
+
 function plot_FRF(sol, E, H, dof::Int)
-    Ωs, amps = extract_amplitude_vs_frequency(sol, E, H, dof)
+    Ωs, amps = extract_amplitude_vs_frequency_by_harmonic_order(sol, E, H, dof, Nx)
     fig = Figure()
     ax = Axis(fig[1, 1], xlabel = L"\Omega", ylabel = L"\mathrm{max}(|x(t)|)")
     lines!(ax, Ωs, amps)
