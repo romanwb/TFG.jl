@@ -4,6 +4,14 @@ module TFG
 #export my_f
 
 using DifferentialEquations, GLMakie, Distributions, FFTW, LinearAlgebra, ContinuationSuite, Parameters
+
+include("plots/themes.jl")
+include("plots/plots.jl")
+
+function __init__()
+    apply_latex_style!()
+end
+
 include("duffing_params.jl")
 include("fft.jl")
 include("duffing_oscillator.jl")
@@ -15,7 +23,7 @@ include("friction_model.jl")
 
 
 
-export DuffingParams, DuffingParamsContinuation, DuffingParamsTimeIntegration
+export DuffingParams, DuffingParamsContinuation, DuffingParamsTimeIntegration, DuffingParamsContinuationReal
 export fft_matrices, system_matrix
 export duffing, duffing_continuation, duffing_time_domain, duffing_time_domain_g, jacobian_matrix
 # export DuffingTimeAsymp

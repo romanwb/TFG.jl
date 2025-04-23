@@ -55,11 +55,35 @@ end
 
     x₀::Vector{Float64}
 
-    @assert length(x₀) == 2H + 1 "x₀ debe tener dimensión 2H+1, pero tiene $(length(x₀))"
+    #@assert length(x₀) == 2H + 1 "x₀ debe tener dimensión 2H+1, pero tiene $(length(x₀))"
 
     f̂::Vector{Float64}
 
-    @assert length(f̂) == 2H + 1 "f̂ debe tener dimensión 2H+1, pero tiene $(length(f̂))"
+   # @assert length(f̂) == 2H + 1 "f̂ debe tener dimensión 2H+1, pero tiene $(length(f̂))"
+
+    g::Function
+    dg::Function
+
+end
+
+@with_kw struct DuffingParamsContinuationReal
+
+    N::Int
+    H::Int
+    
+    ξ::Any
+    ϵ::Any
+
+    E::Any
+    Eᴴ::Any
+
+    x₀::Any
+
+    #@assert length(x₀) == 2H + 1 "x₀ debe tener dimensión 2H+1, pero tiene $(length(x₀))"
+
+    f̂::Any
+
+   # @assert length(f̂) == 2H + 1 "f̂ debe tener dimensión 2H+1, pero tiene $(length(f̂))"
 
     g::Function
     dg::Function

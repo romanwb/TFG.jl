@@ -11,7 +11,7 @@ function time_integration_values(ξ̃, ϵ, n, λ₀, f̂₀, y₀, g)
         diff = Inf
         while diff > tol
             step = 25
-            prob = ODEProblem(duffing_time_domain_g, y₀, tspan, p)
+            prob = ODEProblem(duffing_time_domain, y₀, tspan, p)
             sol = DifferentialEquations.solve(prob, Tsit5(), saveat=0.1)
             new_max = maximum(abs.(sol[1, end-step:end]))
             diff, old_max = abs(new_max - old_max), new_max

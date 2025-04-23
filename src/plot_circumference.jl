@@ -2,7 +2,7 @@
 
 λ_vals = range(5, 20, length=10)  # Más valores de lambda para más circunferencias
 
-circumference = Figure(resolution = (800, 600))
+circumference = Figure(resolution = (800, 800))
 ax = Axis(circumference[1, 1], xlabel="x", ylabel="y", title="Intersección de Recta y Circunferencias",
         limits = (-5, 5, -5, 5))
 
