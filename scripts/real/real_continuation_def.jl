@@ -1,7 +1,8 @@
 using TFG, ContinuationSuite, GLMakie, DifferentialEquations, ForwardDiff, CairoMakie, LinearAlgebra
 
+#Build T
 function build_Max_block(Max, Kaa, Ω, H, ξ)
-    T = eltype(Ω)  # tipo puede ser Float64 o Dual
+    T = eltype(Ω)
     Nx = size(Max, 2)
     N_total = (2H + 1) * Nx
     block = zeros(T, N_total, N_total)
@@ -11,7 +12,7 @@ function build_Max_block(Max, Kaa, Ω, H, ξ)
     for k in 1:H
         num1 = ω² .- T(k^2) * Ω^2
         denom = num1.^2 .+ (T(k) * Ω * ω² * ξ).^2
-        denom .= denom .+ T(1e-12)  # evitar división por cero
+        #denom .= denom .+ T(1e-12)
 
         D1 = Diagonal(num1 ./ denom)
         D2 = Diagonal((T(k) * Ω * ω² * ξ) ./ denom)
@@ -88,11 +89,7 @@ function continuation_system(x̂, λ, p::HBMParams)
     return LHS * x̂ + G - p.F
 end
 
-
-###################################################################
-###################################################################
-###################################################################
-
+#Params
 N, H = 2^6, 3
 ξ, ϵ = 0.05, 1
 ξ̃ = ϵ * ξ
@@ -102,20 +99,13 @@ n = 5
 Nh = 2H + 1
 m = 1.0
 k = 10.0
-
-
 E, Eᴴ = fft_matrices(2H+1, H)
 Nx = 3
 
-###################################################################
-###################################################################
-###################################################################
-
-# Frecuencias modales (Kaa)
+# Example_HBM
 omega_a2 = [3.8196601125010514, 26.18033988749895]  # → Kaa = Diagonal(omega_a2.^2)
 Kaa = Diagonal(omega_a2.^2)
 
-# Matrices del sistema reducido
 Mxx = [3.0 0.0 0.0;
         0.0 1.0 0.0;
         0.0 0.0 1.0]
@@ -127,22 +117,17 @@ Kxx = [10.0 -10.0 0.0;
        -10.0 20.0 -10.0;
          0.0 -10.0 20.0]
 
-# Matrices de proyección (no necesarias directamente si ya trabajas en reducido)
 Psi = [1.0 0.0 0.0;
         0.0 1.0 0.0]
 
 Phi = [-0.850651 -0.525731;
        -0.525731 0.850651]
 
-# Vectores de fuerza
 fa = [-1.3763819204711734, 0.3249196962329064]
 fx = [3.0, 0.0, 0.0]
-
-# Fuerza de precarga (Rx)
 Rx = [-1.2, -0.1, -0.1]
-
-# Estado estático de la parte modal (no se usa directamente para la dinámica en HBM)
 xe0 = zeros(2)
+
 
 function build_forcing_vector(fx, H, Nx)
     F = zeros(Nx * (2H + 1))
@@ -157,7 +142,7 @@ F = build_forcing_vector(fx, H, Nx)
 
 
 # Crear parámetros
-params = HBMParams(Kxx, Mxx, Max, Kaa, F, γ, H, Nx, E, Eᴴ, ξ)
+p = HBMParams(Kxx, Mxx, Max, Kaa, F, γ, H, Nx, E, Eᴴ, ξ)
 
 # Evaluar en punto inicial
 #residuo = continuation_system(x̂, λ, params)
@@ -198,20 +183,13 @@ end
 
 x̂₀ = initial_guess_from_preload(Kxx, Rx, γ, H, Nx)
 
-###################################################################
-###################################################################
-###################################################################
-
+#Solver
 λ₀ = 0.00
-n = 200 #nº de frecuencias evaluadas en la integracion temporal
-y₀ = [0, 0] # CI del problema temporal
-
 cont_pars = ContinuationParameters(λmin = λ₀, λmax = 2.0, Δs = 0.01, maxsteps = 10_000,
     direction = :forward, predictor = PseudoArcLength(),
     corrector = Newton(), verbose = true)
 
-
-prob = ContinuationProblem(continuation_system, cont_pars, params; autodiff = true)
+prob = ContinuationProblem(continuation_system, cont_pars, p; autodiff = true)
 
 sol = continuation(prob, x̂₀, λ₀)
 
@@ -236,10 +214,9 @@ function plot_FRF(sol, E, H, dof::Int)
 end
 
 
-fig = plot_FRF(sol, E, H, 3)  # Nodo 3
-
+#Plot
+fig = plot_FRF(sol, E, H, 1)
 display(fig)
-
 
 using CairoMakie
 TFG.save_figure_pdf("scripts/REAL.pdf", fig)
