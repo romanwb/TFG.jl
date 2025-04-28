@@ -35,7 +35,6 @@ function build_T(Max, Kaa, Ω, H, ξ)
 end
 
 
-
 struct HBMParams
     Kxx::Matrix{Float64}
     Mxx::Matrix{Float64}
@@ -154,6 +153,11 @@ end
 Nt = 300
 E, Eᴴ = fft_matrices(Nt, H)
 f_time, t = build_time_domain_force(Nx, Nt)
+for i in eachindex(f_time)
+    println(f_time[i])
+end
+
+
 Fhat_by_node = time_to_fourier_force(f_time, Eᴴ)
 F = reorder_force_by_harmonic(Fhat_by_node, Nx, H)
 p = HBMParams(Kxx, Mxx, Max, Kaa, F, γ, H, Nx, E, Eᴴ, ξ)
