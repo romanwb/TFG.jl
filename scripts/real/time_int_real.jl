@@ -22,8 +22,7 @@ function nonlinear_term(x, γ)
     return g
 end
 
-# --- Sistema de ecuaciones de primer orden ---
-function coupled_system!(ẏ, y, p, t, ω)
+function system_real_problem_int(ẏ, y, p, t, ω)
     n = size(p.M, 1)
     x = y[1:n]
     v = y[n+1:end]
@@ -34,17 +33,16 @@ function coupled_system!(ẏ, y, p, t, ω)
     ẏ[n+1:end] = p.M \ (-p.K*x -p.ξ*p.K*v - g_x + f_t)
 end
 
-# --- Función principal: integración en rango de frecuencias ---
 function time_integration_values_multinode(M, K, γ, n_ω, ω_range; uniform=true)
     Nx = size(M, 1)  # número de nodos
     y₀ = zeros(2Nx)
 
-    tspan = (0.0, 600.0)
-    diff, tol = Inf, 1e-2
+    tspan = (0.0, 1000.0)
+    diff, tol = Inf, 1e-4
     amplitudes = zeros(n_ω)
     ω_axis = zeros(n_ω)
 
-    # Crear el eje de frecuencias
+    #eje de frecuencias
     if uniform
         ω_axis .= LinRange(ω_range[1], ω_range[2], n_ω)
     else
@@ -55,7 +53,6 @@ function time_integration_values_multinode(M, K, γ, n_ω, ω_range; uniform=tru
 
     params = SystemParams(M, K, γ, ξ)
 
-    # Bucle sobre cada frecuencia ω
     for i in 1:n_ω
         ω = ω_axis[i]
         old_max = 0
@@ -64,11 +61,11 @@ function time_integration_values_multinode(M, K, γ, n_ω, ω_range; uniform=tru
 
         while diff > tol
             step = 25
-            prob = ODEProblem((dy, y, p, t) -> coupled_system!(dy, y, p, t, ω), y₀, tspan, params)
+            prob = ODEProblem((dy, y, p, t) -> system_real_problem_int(dy, y, p, t, ω), y₀, tspan, params)
             sol = DifferentialEquations.solve(prob, Tsit5(), saveat=0.1)
 
             x5 = sol[5, :]
-            new_max = maximum(x5[end-step:end])
+            new_max = maximum(abs.(x5[end-step:end]))
             diff, old_max = abs(new_max - old_max), new_max
             tspan = (tspan[1], tspan[2] + step)
         end

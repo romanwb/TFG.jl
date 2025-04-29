@@ -70,12 +70,6 @@ function continuation_system(x̂, λ, p::HBMParams)
     end
     
     G = vec((G_mat))
-  # G1 = Eᴴ * ((E * x̂[[1, 4, 7, 10, 13, 16, 19]]).^3)
-  # G2 = Eᴴ * ((E * x̂[[2, 5, 8, 11, 14, 17, 20]]).^3)
-  # G3 = Eᴴ * ((E * x̂[[3, 6, 9, 12, 15, 18, 21]]).^3)
-  # G = [G1[1], G2[1], G3[1], G1[2], G2[2], G3[2], G1[3], G2[3], G3[3], 
-  #     G1[4], G2[4], G3[4], G1[5], G2[5], G3[5], G1[6], G2[6], G3[6], 
-  #     G1[7], G2[7], G3[7]]
 
     T = eltype(x̂)
     LHS = zeros(T, dof_total, dof_total)
@@ -83,16 +77,32 @@ function continuation_system(x̂, λ, p::HBMParams)
     LHS[1:Nx, 1:Nx] .= p.Kxx
 
 
-#         ⎡ 1 - k^2*λ^2       kλξ   ⎤
-#   A_k = ⎢                         ⎥
-#         ⎣     -kλξ     1 - k^2*λ^2⎦
-    A = system_matrix(H, ξ, λ)  # 2H × 2H
-    I_H = Matrix{T}(I, 2H, 2H)
+#
+    for k in 1:H
+    ω² = T.(diag(p.Kaa))
+
+      num1 = ω² .- T(k^2) * λ^2
+      denom = num1.^2 .+ (T(k) * λ * ω² * ξ).^2
+      #Dimensiones 2x2
+      D1 = Diagonal(num1 ./ denom)
+      D2 = Diagonal((T(k) * λ * ω² * ξ) ./ denom)
+
+        B11 = p.Kxx - (k^2)*(λ^2)*p.Mxx - T(k^4) * λ^4 * Max' * D1 * Max
+        B12 = k*λ*ξ*p.Kxx + T(k^4) * λ^4 * Max' * D2 * Max
+        B21 = - k*λ*ξ*p.Kxx - T(k^4) * λ^4 * Max' * D2 * Max
+        B22 = p.Kxx - (k^2)*(λ^2)*p.Mxx - T(k^4) * λ^4 * Max' * D1 * Max
+        B = [B11 B12; B21 B22]
+
+        LHS[(Nx*2k-(Nx-1)):(Nx*2k+(Nx)), (Nx*2k-(Nx-1)):(Nx*2k+(Nx))] .= B
+
+    end
+#    A = system_matrix(H, ξ, λ)  # 2H × 2H
+#    I_H = Matrix{T}(I, 2H, 2H)
 # Generacion de diagonal de matrices
-    LHS_k = kron(A, p.Kxx) + kron(I_H, -λ^2 * p.Mxx)
+#    LHS_k = kron(A, p.Kxx) + kron(I_H, -λ^2 * p.Mxx)
 # NOTA: Recordar que las primeras Nx filas y columnas corresponden al armónico constante k=0
-    LHS[Nx+1:end, Nx+1:end] .= LHS_k
-    LHS .+= build_T(p.Max, p.Kaa, λ, H, ξ)
+ #   LHS[Nx+1:end, Nx+1:end] .= LHS_k
+ #   LHS .+= build_T(p.Max, p.Kaa, λ, H, ξ)
 
     
     Force = final_force(λ, p::HBMParams)
@@ -104,9 +114,8 @@ end
 
 
 
-
 #Params
-N, H = 2^6, 3
+N, H = 2^6, 10
 ξ, ϵ = 0.05, 1
 ξ̃ = ϵ * ξ
 γ = 1.0
@@ -164,12 +173,12 @@ function final_force(λ, p::HBMParams)
 
     F = zeros(T, Nx*(2H+1))
     for k in 1:H
-        num1 = ω² .- T(k^2) * λ₀^2
-        denom = num1.^2 .+ (T(k) * λ₀ * ω² * ξ).^2
+        num1 = ω² .- T(k^2) * λ^2
+        denom = num1.^2 .+ (T(k) * λ * ω² * ξ).^2
     
         #Dimensiones 2x2
         D1 = Diagonal(num1 ./ denom)
-        D2 = Diagonal((T(k) * λ₀ * ω² * ξ) ./ denom)
+        D2 = Diagonal((T(k) * λ * ω² * ξ) ./ denom)
     
         F[[Nx*k+1, Nx*k+2, Nx*k+3]] = Fₓ[[Nx*k, Nx*k+1, Nx*k+2]] + (k^2)*(λ^2)*Max'*(D1*Fₐ[[(n-Nx)*k+1, (n-Nx)*k+2]] - D2*Fₐ[[(n-Nx)*k+3, (n-Nx)*k+4]])
         F[[Nx*k+4, Nx*k+5, Nx*k+6]] = Fₓ[[Nx*k+3, Nx*k+4, Nx*k+5]] + (k^2)*(λ^2)*Max'*(D2*Fₐ[[(n-Nx)*k+1, (n-Nx)*k+2]] - D1*Fₐ[[(n-Nx)*k+3, (n-Nx)*k+4]])
@@ -255,6 +264,8 @@ dof=3
 fig = Figure()
 axis = Axis(fig[1, 1], limits=(0, 2, 0, 2), xlabel = L"\Omega", ylabel = L"\mathrm{max}(|x(t)|)")
 lines!(axis, Ωs, amps)
+lines!(axis, ω_axis, amplitudes_int)
+
 fig
 
 using CairoMakie
