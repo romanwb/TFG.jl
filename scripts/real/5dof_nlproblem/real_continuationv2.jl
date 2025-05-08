@@ -1,5 +1,14 @@
 using TFG, ContinuationSuite, GLMakie, DifferentialEquations, ForwardDiff, CairoMakie, LinearAlgebra
 
+" ! NOTAS
+Nota 1: Se hace una matriz para guardar los coeficientes de G, de forma que es más comodo partir de esta matriz a la hora de obtener el vector de coeficientes de G ya sea agrupado por nodos o armónicos (solo cambia que el vector se crea cogiendo fila tras fila o columna tras columna)
+
+
+Nota 2: 
+
+"
+
+
 #Build T
 function build_T(Max, Kaa, Ω, H, ξ)
     T = eltype(Ω)
@@ -13,7 +22,6 @@ function build_T(Max, Kaa, Ω, H, ξ)
     for k in 1:H
         num1 = ω² .- (T(k^2) * Ω^2 * I_A)
         denom = num1.^2 .+ (T(k) * Ω * ω² * ξ).^2
-        #denom .= denom .+ T(1e-12)
 
         D1 = Diagonal(num1 ./ denom)
         D2 = Diagonal((T(k) * Ω * ω² * ξ) ./ denom)
@@ -57,25 +65,20 @@ function continuation_system(x̂, λ, p::HBMParams)
     H, Nx, ξ = p.H, p.Nx, p.ξ
     E, Eᴴ = p.E, p.Eᴴ
     γ = p.γ
+    # dof para referirse a dof del problema algebraico, no el fisico
     dof_per_node = 2H + 1
     dof_total = Nx * dof_per_node
     Nh = 2H + 1
     T = eltype(x̂)
-    G_mat = zeros(T, Nx, 2H+1)    
+    G_mat = zeros(T, Nx, 2H+1) # Nota 1 
     G = zeros(Nx*(2H+1))
     for dof in 1:Nx
-        idxs = [dof + (k-1)*Nx for k in 1:Nh]   # ESTA es la forma correcta
+        idxs = [dof + (k-1)*Nx for k in 1:Nh]
         coeffs = x̂[idxs]
         G_mat[dof,:] = Eᴴ * ((E * coeffs).^3)
     end
     
-    G = vec((G_mat))
-  # G1 = Eᴴ * ((E * x̂[[1, 4, 7, 10, 13, 16, 19]]).^3)
-  # G2 = Eᴴ * ((E * x̂[[2, 5, 8, 11, 14, 17, 20]]).^3)
-  # G3 = Eᴴ * ((E * x̂[[3, 6, 9, 12, 15, 18, 21]]).^3)
-  # G = [G1[1], G2[1], G3[1], G1[2], G2[2], G3[2], G1[3], G2[3], G3[3], 
-  #     G1[4], G2[4], G3[4], G1[5], G2[5], G3[5], G1[6], G2[6], G3[6], 
-  #     G1[7], G2[7], G3[7]]
+    G = vec((G_mat)) #Ordenados por armónicos (coge columna a columna)
 
     T = eltype(x̂)
     LHS = zeros(T, dof_total, dof_total)
@@ -83,43 +86,44 @@ function continuation_system(x̂, λ, p::HBMParams)
     LHS[1:Nx, 1:Nx] .= p.Kxx
 
 
-#         ⎡ 1 - k^2*λ^2       kλξ   ⎤
-#   A_k = ⎢                         ⎥
-#         ⎣     -kλξ     1 - k^2*λ^2⎦
-    A = system_matrix(H, ξ, λ)  # 2H × 2H
-    I_H = Matrix{T}(I, 2H, 2H)
-# Generacion de diagonal de matrices
-    LHS_k = kron(A, p.Kxx) + kron(I_H, -λ^2 * p.Mxx)
-# NOTA: Recordar que las primeras Nx filas y columnas corresponden al armónico constante k=0
-    LHS[Nx+1:end, Nx+1:end] .= LHS_k
-    LHS .+= build_T(p.Max, p.Kaa, λ, H, ξ)
+    for k in 1:H
+    ω² = T.(diag(p.Kaa))
 
-    
-    Force = final_force(λ, p::HBMParams)
-    #Fₓ = zeros(T, Nx*(2H+1))
-    #Fₓ[7] = 3
-    #Fₓ[13] = 3
+      num1 = ω² .- T(k^2) * λ^2
+      denom = num1.^2 .+ (T(k) * λ * ω² * ξ).^2
+      #Dimensiones 2x2
+      D1 = Diagonal(num1 ./ denom)
+      D2 = Diagonal((T(k) * λ * ω² * ξ) ./ denom)
+
+        B11 = p.Kxx - (k^2)*(λ^2)*p.Mxx - T(k^4) * λ^4 * Max' * D1 * Max
+        B12 = k*λ*ξ*p.Kxx + T(k^4) * λ^4 * Max' * D2 * Max
+        B21 = - k*λ*ξ*p.Kxx - T(k^4) * λ^4 * Max' * D2 * Max
+        B22 = p.Kxx - (k^2)*(λ^2)*p.Mxx - T(k^4) * λ^4 * Max' * D1 * Max
+        B = [B11 B12; B21 B22]
+
+        LHS[(Nx*2k-(Nx-1)):(Nx*2k+(Nx)), (Nx*2k-(Nx-1)):(Nx*2k+(Nx))] .= B
+
+    end
+
+    Force = external_force(λ, p::HBMParams)
     return LHS * x̂ + G - Force
 end
 
-
-
-
 #Params
-N, H = 2^6, 3
+N, H = 2^6, 10
 ξ, ϵ = 0.05, 1
 ξ̃ = ϵ * ξ
 γ = 1.0
-E, Eᴴ = fft_matrices(N, H)
-n = 5
-Nh = 2H + 1
 m = 1.0
 k = 10.0
-Nx = 3
-size(E)
+E, Eᴴ = fft_matrices(N, H)
+n = 5 
+Nx = 3 #! nº de masas con friccion no lineal
+Nh = 2H + 1
+
 
 # Example_HBM
-omega_a2 = [3.8196601125010514, 26.18033988749895]  # → Kaa = Diagonal(omega_a2.^2)
+omega_a2 = [3.8196601125010514, 26.18033988749895]
 Kaa = Diagonal(omega_a2.^2)
 
 Mxx = [3.0 0.0 0.0;
@@ -143,7 +147,7 @@ fx = [3.0, 0.0, 0.0]
 Rx = [-1.2, -0.1, -0.1]
 xe0 = zeros(2)
 
-function final_force(λ, p::HBMParams)
+function external_force(λ, p::HBMParams)
     T = eltype(λ)
     Max_prev = p.Max
     Max = T.(Max_prev)
@@ -164,12 +168,12 @@ function final_force(λ, p::HBMParams)
 
     F = zeros(T, Nx*(2H+1))
     for k in 1:H
-        num1 = ω² .- T(k^2) * λ₀^2
-        denom = num1.^2 .+ (T(k) * λ₀ * ω² * ξ).^2
+        num1 = ω² .- T(k^2) * λ^2
+        denom = num1.^2 .+ (T(k) * λ * ω² * ξ).^2
     
         #Dimensiones 2x2
         D1 = Diagonal(num1 ./ denom)
-        D2 = Diagonal((T(k) * λ₀ * ω² * ξ) ./ denom)
+        D2 = Diagonal((T(k) * λ * ω² * ξ) ./ denom)
     
         F[[Nx*k+1, Nx*k+2, Nx*k+3]] = Fₓ[[Nx*k, Nx*k+1, Nx*k+2]] + (k^2)*(λ^2)*Max'*(D1*Fₐ[[(n-Nx)*k+1, (n-Nx)*k+2]] - D2*Fₐ[[(n-Nx)*k+3, (n-Nx)*k+4]])
         F[[Nx*k+4, Nx*k+5, Nx*k+6]] = Fₓ[[Nx*k+3, Nx*k+4, Nx*k+5]] + (k^2)*(λ^2)*Max'*(D2*Fₐ[[(n-Nx)*k+1, (n-Nx)*k+2]] - D1*Fₐ[[(n-Nx)*k+3, (n-Nx)*k+4]])
@@ -181,44 +185,16 @@ end
 
 E, Eᴴ = fft_matrices(N, H)
 F= zeros(N)
-#p = HBMParams(Kxx, Mxx, Max, Kaa, F, γ, H, Nx, E, Eᴴ, ξ)
 T = Float64
-#p = HBMParams(T.(Kxx), T.(Mxx), T.(Max), Diagonal(T.(diag(Kaa))), zeros(T, Nx*(2H+1)), T(γ), H, Nx, T.(E), T.(Eᴴ), T(ξ))
 
 p = HBMParams{T}(Kxx, Mxx, Max, Kaa, F, γ, H, Nx, E, Eᴴ, ξ)
-
-
-# Preload
-#function solve_static_preload(Kxx, Rx, γ; tol=1e-10, maxiter=50)
-#    x = zeros(length(Rx))  # inicialización
-#    for iter in 1:maxiter
-#        gx = γ .* x.^3bloque
-#    error("No converge el estado de precarga")
-#end
-#
-#
-#function initial_guess_from_preload(Kxx, Rx, γ, H, Nx)
-#    x_p = solve_static_preload(Kxx, Rx, γ)
-#    dof_per_node = 2H + 1
-#    x̂₀ = zeros(Nx * dof_per_node)
-#    for j in 1:Nx
-#        x̂₀[(j-1)*dof_per_node + 1] = x_p[j]  # solo el coef. constante
-#    end
-#    return x̂₀
-#end
-#
-#
-#x̂₀ = initial_guess_from_preload(Kxx, Rx, γ, H, Nx)
-#for i in eachindex(x̂₀)
-#    println(x̂₀[i])
-#end
 
 x̂₀ = zeros(Nx*(2H+1))
 
 
 #Solver
 λ₀ = 0.0
-cont_pars = ContinuationParameters(λmin = λ₀, λmax = 2.0, Δs = 0.01, maxsteps = 10_000,
+cont_pars = ContinuationParameters(λmin = λ₀, λmax = 2.0, Δs = 0.05, maxsteps = 10_000,
     direction = :forward, predictor = PseudoArcLength(),
     corrector = Newton(), verbose = true)
 
@@ -229,6 +205,8 @@ sol = continuation(prob, x̂₀, λ₀)
 λ_values = sol.λ
 size(sol.λ)
 size(sol.x)
+
+print(λ_values)
 
 function extract_amplitude_vs_frequency_by_harmonic_order(sol, E, H, dof::Int, Nx::Int)
     Nh = 2H + 1
@@ -253,9 +231,13 @@ end
 dof=3
 Ωs, amps = extract_amplitude_vs_frequency_by_harmonic_order(sol, E, H, dof, Nx)
 fig = Figure()
-axis = Axis(fig[1, 1], limits=(0, 2, 0, 2), xlabel = L"\Omega", ylabel = L"\mathrm{max}(|x(t)|)")
+axis = Axis(fig[1, 1], limits=(0, 2, 0, 5), xlabel = L"\Omega", ylabel = L"\mathrm{max}(|x(t)|)")
 lines!(axis, Ωs, amps)
+lines!(axis, ω_axis, amplitudes_int)
+
 fig
+
+print(amps[1])
 
 using CairoMakie
 TFG.save_figure_pdf("scripts/REAL.pdf", fig)

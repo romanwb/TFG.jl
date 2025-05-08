@@ -38,10 +38,10 @@ function time_integration_values_multinode(M, K, γ, n_ω, ω_range; uniform=tru
     y₀ = zeros(2Nx)
 
     tspan = (0.0, 1000.0)
-    diff, tol = Inf, 1e-4
+    diff, tol = Inf, 1e-2
     amplitudes = zeros(n_ω)
     ω_axis = zeros(n_ω)
-
+    sol=zeros(10,10000)
     #eje de frecuencias
     if uniform
         ω_axis .= LinRange(ω_range[1], ω_range[2], n_ω)
@@ -73,7 +73,7 @@ function time_integration_values_multinode(M, K, γ, n_ω, ω_range; uniform=tru
         amplitudes[i] = old_max
     end
 
-    return ω_axis, amplitudes
+    return sol, ω_axis, amplitudes
 end
 
 # --- Definimos matrices M, K y parámetros del problema ---
@@ -93,10 +93,10 @@ K = k * [
 ]
 
 # --- Ejecutamos la integración ---
-n_ω = 100  # Número de puntos
+n_ω = 10  # Número de puntos
 ω_range = (0.0, 2.0)
 
-ω_axis, amplitudes_int = time_integration_values_multinode(M, K, γ, n_ω, ω_range)
+sol, ω_axis, amplitudes_int = time_integration_values_multinode(M, K, γ, n_ω, ω_range)
 
 # --- Plot bonito ---
 fig = Figure()
@@ -115,3 +115,87 @@ lines!(ax, ω_axis, amplitudes_int)
 #    markersize = 3
 #)
 fig
+
+size(sol)
+
+
+using GLMakie
+
+# === Datos simulados ===
+N = 10251
+t_vec = range(0, 5, length=N)
+X = [sol[1,:];
+     sol[2,:];
+     sol[3,:];
+     sol[4,:];
+     sol[5,:]]
+
+X = reshape(X, 5, N)  # 5 filas, cada columna es un instante
+
+# === Parámetros de dibujo ===
+mass_width = 0.4
+mass_height = 0.2
+gap = 1.2
+base_y = 0.0
+x_pos = 0.0
+wall_x = 0.6  # posición de los muros laterales
+
+# === Crear figura y eje ===
+fig = Figure(resolution = (600, 800))
+ax = Axis(fig[1, 1]; aspect = DataAspect(), limits = (-1, 1.2, -1, 6))
+hidexdecorations!(ax)
+hideydecorations!(ax)
+
+# === Dibujar masas (bloques azules) ===
+mass_rects = [Rect(x_pos - mass_width/2, base_y + (5 - i) * gap, mass_width, mass_height) for i in 1:5]
+mass_obs = [Observable(r) for r in mass_rects]
+mass_plots = [poly!(ax, r; color = :skyblue) for r in mass_obs]
+
+# === Dibujar muros y barras de fricción ===
+for i in 3:5  # x1, x2, x3
+    y = base_y + (5 - i) * gap
+    linesegments!(ax, [wall_x, wall_x], [y, y + mass_height]; linewidth = 2, color = :black)
+    lines!(ax, [x_pos + mass_width/2, wall_x], [y + mass_height/2, y + mass_height/2]; linestyle = :dot)
+end
+
+# === Función para generar muelles zigzag ===
+function spring_coords(x, y1, y2; turns=6, amp=0.1)
+    n = 2 * turns + 1
+    ys = range(y1, y2, length=n)
+    xs = [x + (-1)^i * amp for i in 1:n]
+    xs[1] = x
+    xs[end] = x
+    return xs, ys
+end
+
+# === Inicializar observables para muelles ===
+spring_lines = [Observable(Point2f[]) for _ in 1:5]
+spring_plots = [lines!(ax, s; color=:gray) for s in spring_lines]
+
+# === Función de actualización por frame ===
+function update_masses!(step)
+    for i in 1:5
+        y_offset = X[i, step]
+        new_rect = Rect(x_pos - mass_width/2, base_y + (5 - i) * gap + y_offset, mass_width, mass_height)
+        mass_obs[i][] = new_rect
+    end
+
+    # Muelles entre masas
+    for i in 1:4
+        y1 = mass_obs[i][].origin[2]
+        y2 = mass_obs[i+1][].origin[2] + mass_obs[i+1][].widths[2]
+        xs, ys = spring_coords(x_pos, y2, y1)
+        spring_lines[i][] = Point2f.(xs, ys)
+    end
+
+    # Muelle inferior (base)
+    y_top = mass_obs[5][].origin[2]
+    y_bottom = y_top - gap
+    xs, ys = spring_coords(x_pos, y_bottom, y_top)
+    spring_lines[5][] = Point2f.(xs, ys)
+end
+
+# === Grabar animación ===
+record(fig, "5dof_masses_with_springs_and_friction.mp4", 1:N; framerate = 10) do step
+    update_masses!(step)
+end
