@@ -98,7 +98,7 @@ k = 10.0
 ξ = 0.05
 
 omega_a2 = [3.8196601125010514, 26.18033988749895]
-Kaa = Diagonal(omega_a2.^2)
+Kaa = Diagonal(omega_a2)
 
 Maa = Matrix(I, 2, 2)
 

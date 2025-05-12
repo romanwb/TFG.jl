@@ -2,7 +2,7 @@
 ESTE SCRIPT RESUELVE EL PROBLEMA UNA VEZ SE HA HECHO LA TRANSFORMACION DE CB
 "
 
-using DifferentialEquations, LinearAlgebra, GLMakie
+using DifferentialEquations, LinearAlgebra, GLMakie, Statistics
 
 # --- Definición de parámetros ---
 struct SystemParams
@@ -35,14 +35,16 @@ function system_real_problem_int(ẏ, y, p, t, ω)
     g_x = nonlinear_term(x, p.γ)
 
     ẏ[1:n] = v
-    ẏ[n+1:end] = p.M \ (-p.K*x -p.ξ*p.K*v - g_x + f_t)
+    ẏ[n+1:end] = p.M \ (-(p.K)*x -(p.ξ)*(p.K)*v - g_x + f_t)
     #ẏ[n+1:end] = p.M \ (-p.K*x -p.ξ*p.K*v + f_t)
 end
 
 
-function system_solver(M, K, γ, ξ, ω; tmax=1000.0, tol=1e-4, idx=5)
+function system_solver(M, K, γ, ξ, ω; tmax=10000.0, tol=1e-4, idx=5, y₀=nothing)
     n = size(M, 1)
-    y₀ = zeros(2n)
+    if y₀ === nothing
+        y₀ = zeros(2n)
+    end
     tspan = (0.0, tmax)
     params = SystemParams(M, K, γ, ξ)
 
@@ -55,6 +57,7 @@ function system_solver(M, K, γ, ξ, ω; tmax=1000.0, tol=1e-4, idx=5)
 
         x_val = sol[idx, :]
         new_max = maximum(abs.(x_val[end-Int(step/0.1):end]))
+        #new_max = norm(x_val[end-Int(step/0.1):end], Inf)
         diff = abs(new_max - old_max)
         old_max = new_max
         tspan = (tspan[1], tspan[2] + step)
@@ -64,7 +67,7 @@ function system_solver(M, K, γ, ξ, ω; tmax=1000.0, tol=1e-4, idx=5)
     t_vals = sol.t
     n_cycles = (ω .* t_vals) ./ (2π)  # ← vector con número de ciclos
 
-    return x_vals, n_cycles
+    return x_vals, n_cycles, sol
 end
 
 
@@ -82,10 +85,12 @@ function resonance_curve(M, K, γ, ξ, n_ω, ω_range; dof_idx=5)
     ω_axis = LinRange(ω_range[1], ω_range[2], n_ω)
     amplitudes = zeros(n_ω)
 
+    y₀ = nothing
     for (i, ω) in enumerate(ω_axis)
         # "_" para ignorar la segunda variable
-        x_vals, _ = system_solver(M, K, γ, ξ, ω, idx=dof_idx)
+        x_vals, n_cycles, sol = system_solver(M, K, γ, ξ, ω, idx=dof_idx, y₀=y₀)
         amplitudes[i] = amplitude_from_solution(x_vals)
+        y₀ = sol.u[end]
     end
 
     return ω_axis, amplitudes
@@ -99,7 +104,8 @@ k = 10.0
 ξ = 0.05
 
 omega_a2 = [3.8196601125010514, 26.18033988749895]
-Kaa = Diagonal(omega_a2.^2)
+#Kaa = Diagonal(omega_a2.^2)
+Kaa = Diagonal(omega_a2)
 
 Maa = Matrix(I, 2, 2)
 
@@ -133,14 +139,15 @@ f[1:2] = fa
 f[3:5] = fx
 f
 # --- Ejecutamos la integración ---
-n_ω = 200  # Número de puntos
-ω_range = (0.0, 2.0)
+n_ω = 100  # Número de puntos
+ω_range = (0.0, 2.5)
 
-sol5, solx5 = system_solver(M, K, γ, ξ, 1.7; idx=5)
+sol5, solx5 = system_solver(M, K, γ, ξ, 0.63; idx=5)
 size(solx5)
 
 ω_axis, amplitudes_int = resonance_curve(M, K, γ, ξ, n_ω, ω_range, dof_idx=5)
 
+begin
 fig = Figure()
 ax = Axis(fig[1, 1],
     #limits = (0, 2, 0, 2),
@@ -149,7 +156,8 @@ ax = Axis(fig[1, 1],
     xticklabelfont = "Latin Modern Roman",
     yticklabelfont = "Latin Modern Roman"
 )
-lines!(ax, solx5, abs.(sol5))
+lines!(ax, solx5, sol5)
+lines!(ax, t_hbm, x_hbm)
 #    marker = :circle,
 #    color = :black,
 #    strokecolor = :black,
@@ -157,6 +165,10 @@ lines!(ax, solx5, abs.(sol5))
 #    markersize = 3
 #)
 fig
+end
+
+maximum(abs.(sol5))
+maximum(abs.(x_hbm))
 
 
 fig = Figure()
