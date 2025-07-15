@@ -100,3 +100,4 @@ ax  = Axis(fig[1,1], xlabel="Contact Displacement", ylabel="Friction Force")
 lines!(ax, x_full, T[1:300])
 lines!(ax, x_full, T[301:600])
 fig
+
