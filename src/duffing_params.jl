@@ -103,5 +103,6 @@ end
     n::Int
     λ₀::Float64
     g::Function
+    Δω_axis::Vector{Float64}
 
 end

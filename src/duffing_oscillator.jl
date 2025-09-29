@@ -38,11 +38,11 @@ end
 function duffing_time_domain(ẏ, y, p::DuffingParamsTimeIntegration, t)
     ξ, ϵ, f̂ = p.ξ, p.ϵ, p.f̂
     float_f₀ = only(filter(!iszero, f̂))
-    i, n, λ₀ = p.i, p.n, p.λ₀
-    Ω = 1-(1-λ₀)*cos(0.5*π*(2*(i-1)/(n-1)))
+    i, n, λ₀, Δω_axis = p.i, p.n, p.λ₀, p.Δω_axis
+    Ω = Δω_axis
 
     ẏ[1] = y[2] 
-    ẏ[2] = - ξ*ϵ*y[2] - y[1] - ϵ*y[1]^3 + float_f₀*cos(Ω*t)
+    ẏ[2] = - ξ*ϵ*y[2] - y[1] - ϵ*y[1]^3 + float_f₀*cos(Ω[i]*t)
 end
 
 function duffing_time_domain_g(ẏ, y, p::DuffingParamsTimeIntegration, t)
