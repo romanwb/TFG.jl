@@ -2,26 +2,30 @@ using HBMContinuation, GLMakie, LinearAlgebra, Julianim, TFG, JLD2, SparseArrays
     use_formal_theme!()
 
     dataset=("7x7", "345x345", "23456x23456", "34x34", "1-7x1-7", "first_last_cols", "first_last_rows", "first2colums", "upper2rows")
-    EOs=[1, 10, 20, 30, 60]
-    
-# @showprogress 1 "Procesando..."  for m in eachindex(EOs)
+    EOs=[1, 2, 3, 5, 10, 20, 30, 60]
+    key = 1
 
-        key = 2
-        friction_values = [0.01, 0.025, 0.05, 0.1, 0.15]
-# for n in eachindex(friction_values)
     @load "data/tbm/ns146_reduced/reduced_ns146_$(dataset[key]).jld2" Maxᵏ_full Mxaᵏ_full Mxxᵏ_full Kxxᵏ_full fₐᵏ_full fₓᵏ_full ωₐ²ᵏ_full Φᵏ Ψᵏ Rₓ
     @load "data/tbm/ns146_raw/ns146_$(dataset[key]).jld2" contenido
-
-        # EO = EOs[m]
-        EO = 60
         Ns = 146
         Na = length(Maxᵏ_full[1][:,1])
         Nx = Int(length(Mxxᵏ_full[1][:,1]))
         Nc = Int(Nx/3)
         Ne = size(contenido["Mee_new"], 1)
-        # Ne = 39609 # 7x7
-        # Ne = 39729 #345x345
-        # Ne = 39681 #2345x2345
+        Maxᵏ_full_nat, Mxaᵏ_full_nat, Mxxᵏ_full_nat, Kxxᵏ_full_nat, fₐᵏ_full_nat, fₓᵏ_full_nat, ωₐ²ᵏ_full_nat, Φᵏ_nat, Ψᵏ_nat, Rₓ_nat = Maxᵏ_full, Mxaᵏ_full, Mxxᵏ_full, Kxxᵏ_full, fₐᵏ_full, fₓᵏ_full, ωₐ²ᵏ_full, Φᵏ, Ψᵏ, Rₓ
+
+    
+@showprogress 1 "Procesando..."  for m in eachindex(EOs)
+
+        friction_values = [0.01, 0.025, 0.05, 0.1, 0.15]
+
+for n in eachindex(friction_values)
+    Maxᵏ_full, Mxaᵏ_full, Mxxᵏ_full, Kxxᵏ_full, fₐᵏ_full, fₓᵏ_full, ωₐ²ᵏ_full, Φᵏ, Ψᵏ, Rₓ = Maxᵏ_full_nat, Mxaᵏ_full_nat, Mxxᵏ_full_nat, Kxxᵏ_full_nat, fₐᵏ_full_nat, fₓᵏ_full_nat, ωₐ²ᵏ_full_nat, Φᵏ_nat, Ψᵏ_nat, Rₓ_nat
+
+
+        EO = EOs[m]
+        # EO = 60
+
 
         # Construccion de las fuerzas
         fe = contenido["F_vector"]
@@ -39,12 +43,12 @@ using HBMContinuation, GLMakie, LinearAlgebra, Julianim, TFG, JLD2, SparseArrays
 
         #   Rₓ = ones(Nx) * -100
         # Construccion de las reacciones
-        extra_react = 200.0
+        extra_react = 500.0
         added_force = extra_react*49/Nc
 
         for i in 3:3:Nx
-            # Rₓ[i-2] = Rₓ[i-2] - added_force/extra_react
-            # Rₓ[i-1] = Rₓ[i-1] - added_force/extra_react
+            # Rₓ[i-2] = Rₓ[i-2] - 10*added_force/extra_react
+            # Rₓ[i-1] = Rₓ[i-1] - 10*added_force/extra_react
              Rₓ[i] = Rₓ[i] - added_force
             # Rₓ[i] = Rₓ[i] + 10.0
         end
@@ -66,7 +70,7 @@ end
         # γ = 5e16
          γ = 5e12
 
-        H = 5 # numero de armonicos
+        H = 3 # numero de armonicos
     end
 
     # adimensionalizacion
@@ -122,7 +126,7 @@ end
     HBMCPars = HBMCParameters(N = N, H = H)
 
     ContPars = ContinuationParameters(
-        λmin = Ω₀, λmax = Ωₘₐₓ, Δs = 0.02/EO, maxsteps = 10_000,
+        λmin = Ω₀, λmax = Ωₘₐₓ, Δs = 0.01/EO, maxsteps = 10_000,
         direction = :forward, predictor = PseudoArcLength(),
         corrector = Newton(ϵᵣ = 1e-6, ϵₓ = 1e-6), verbose = true, ncols = 5)
 
@@ -144,10 +148,10 @@ end
     )
     
     friction_name = ["1e-2", "25e-3", "5e-2", "1e-1", "15e-2"]
-     @save "scripts/realistic_models/turbine_blade_model/study_of_friction/data/EO$(EO)/$(dataset[key])_mu$(friction_name[n]).jld2" Ω Xⱼ Aⱼ p
+     @save "scripts/tbm_cyclic/study_of_friction/data/EO$(EO)/$(dataset[key])_mu$(friction_name[n]).jld2" Ω Xⱼ Aⱼ p
 
-# end
-# end
+end
+end
 
     A₁ = Aⱼ[1:(2H + 1), :]
     # A₁ = Aⱼ[(2H + 2):(4H + 2), :]

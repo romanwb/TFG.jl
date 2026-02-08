@@ -1,19 +1,21 @@
 using HBMContinuation, GLMakie, LinearAlgebra, Julianim, TFG, JLD2, SparseArrays, LaTeXStrings, Printf
 use_formal_theme!()
 # forcing = ("5e-1", "1", "2", "4")
-friction_name = ["1e-2", "25e-3", "5e-2", "1e-1", "15e-2"]
+# friction_name = ["1e-2", "25e-3", "5e-2", "1e-1", "15e-2"]
+friction_name = ["15e-2", "1e-1", "5e-2", "25e-3", "1e-2"]
 EOs=[1, 2, 3, 5, 10, 30]
 
-fig = Figure(resolution = (1000, 800))
 
 begin
+    fig = Figure(resolution = (1000, 800))
+
     EO = EOs[6]
     dataset=("7x7", "345x345", "23456x23456", "34x34", "1-7x1-7", "first_last_cols", "first_last_rows", "first2colums", "upper2rows")
     data_set_selected = 2
     paths = Vector{String}(undef, length(friction_name))
 
     for i in eachindex(friction_name)
-        paths[i] = "scripts/realistic_models/turbine_blade_model/study_of_friction/data/EO$(EO)/$(dataset[data_set_selected])_mu$(friction_name[i]).jld2"
+        paths[i] = "scripts/tbm_cyclic/study_of_friction/data/EO$(EO)/$(dataset[data_set_selected])_mu$(friction_name[i])_mod.jld2"
     end
 
     begin
@@ -31,7 +33,7 @@ begin
             Ω[i], Xⱼ[i], Aⱼ[i], p[i] = load(paths[i], "Ω", "Xⱼ", "Aⱼ", "p")
         end
 
-        H = 5
+        H = p[1].H
         E, Eᴴ = HBMContinuation.dft_matrices(2^10, H)
 
         for i in eachindex(paths)
@@ -45,16 +47,17 @@ begin
     end
 
     begin
-        ax1 = Axis(fig[2, 3], limits = (p[1].ω₀²*0.9, p[1].ω₀²*1.02, nothing, nothing), title = "EO = $(EO)", xlabel = "Ω", ylabel = L"\text{max}|a_{1}|")
+        ax1 = Axis(fig[1, 1], limits = (nothing, nothing, nothing, nothing), title = "EO = $(EO)", xlabel = "Ω", ylabel = L"\text{max}|a_{1}|")
         for i in eachindex(paths)
-            mu_float = [0.01, 0.025, 0.05, 0.1, 0.15]
-            lines!(ax1, Ω[i]*p[1].ω₀², a_max[i]; label = "μ = $(mu_float[i])", linewidth=2.0)
+            # mu_float = [0.01, 0.025, 0.05, 0.1, 0.15]
+            mu_float = [0.15, 0.1, 0.05, 0.025, 0.01]
+            lines!(ax1, Ω[i], a_max[i]; label = "μ = $(mu_float[i])", linewidth=2.0)
         end
         axislegend(position = :lt)
         
     end
     display(GLMakie.Screen(), fig)
 end
-fig
+limits!(0.96, 1.035, nothing, nothing)
 using CairoMakie
-save("scripts/realistic_models/turbine_blade_model/study_of_friction/study_of_friction.pdf", fig; backend=CairoMakie)
+save("scripts/tbm_cyclic/study_of_friction/figures/comparison_EO$(EO).pdf", fig; backend=CairoMakie)

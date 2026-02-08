@@ -23,7 +23,10 @@ include("mat_jld2.jl")
 
 include("postprocessing/postprocessing.jl")
 
-include("contact_displacements/contact_displacements.jl")
+include("contact_displacements/contact_plot.jl")
+include("contact_displacements/study_contacts.jl")
+include("contact_displacements/displacement_determination.jl")
+
 
 
 export CircularContainer, COLORS, GREYS, MARKERS
@@ -44,6 +47,8 @@ export convert_mat_to_jld2
 
 export ProjectorMaker, make_FRF
 
-export study_1contact, study_fullplane, make_indexs, full_mesh, stick_or_slip, plot_slip_stick
+export base_figure, full_mesh, plot_slip_stick, plot_selected_contact, point_in_fig_from_axis, center_of_axis_in_fig
+export study_1contact, study_fullplane
+export make_indexs, stick_or_slip, stick_or_slip2
 
 end
